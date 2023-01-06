@@ -221,6 +221,7 @@ class EditorControl extends React.Component {
     const errors = fieldsErrors && fieldsErrors.get(this.uniqueFieldId);
     const childErrors = this.isAncestorOfFieldError();
     const hasErrors = !!errors || childErrors;
+    const disabled = isDisabled && widgetName != 'list';
 
     return (
       <ClassNames>
@@ -271,7 +272,7 @@ class EditorControl extends React.Component {
                 {
                   [css`
                     ${styleStrings.disabled}
-                  `]: isDisabled,
+                  `]: disabled,
                 },
               )}
               classNameWidget={css`
@@ -326,7 +327,7 @@ class EditorControl extends React.Component {
               parentIds={parentIds}
               t={t}
               validateMetaField={validateMetaField}
-              isDisabled={isDisabled}
+              isDisabled={disabled}
               isFieldDuplicate={isFieldDuplicate}
               isFieldHidden={isFieldHidden}
               locale={locale}

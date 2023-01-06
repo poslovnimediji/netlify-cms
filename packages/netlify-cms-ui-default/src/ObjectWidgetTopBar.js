@@ -59,6 +59,7 @@ class ObjectWidgetTopBar extends React.Component {
     collapsed: PropTypes.bool,
     heading: PropTypes.node,
     label: PropTypes.string,
+    isDuplicate: PropTypes.bool,
     t: PropTypes.func.isRequired,
   };
 
@@ -68,7 +69,7 @@ class ObjectWidgetTopBar extends React.Component {
     }
     if (this.props.types && this.props.types.size > 0) {
       return this.renderTypesDropdown(this.props.types);
-    } else {
+    } else if (!this.props.isDuplicate) {
       return this.renderAddButton();
     }
   }

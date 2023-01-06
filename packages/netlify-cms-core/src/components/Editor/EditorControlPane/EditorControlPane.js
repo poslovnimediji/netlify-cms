@@ -11,6 +11,7 @@ import {
   StyledDropdownButton,
   text,
 } from 'netlify-cms-ui-default';
+import { fromJS } from 'immutable';
 
 import EditorControl from './EditorControl';
 import {
@@ -81,17 +82,48 @@ function LocaleDropdown({ locales, dropdownText, onLocaleChange }) {
   );
 }
 
-function getFieldValue({ field, entry, isTranslatable, locale }) {
+function getFieldValue({
+  field,
+  entry,
+  isTranslatable,
+  isDuplicate,
+  locale,
+  defaultLocale,
+  path = [],
+}) {
   if (field.get('meta')) {
     return entry.getIn(['meta', field.get('name')]);
   }
 
+  if (isDuplicate && field.get('widget') == 'list') {
+    const data = entry
+      .getIn(['data', ...path, field.get('name')])
+      .toArray()
+      .map((listItem, listIndex) => {
+        field.get('fields').forEach(f => {
+          listItem = listItem.set(
+            f.get('name'),
+            getFieldValue({
+              field: f,
+              entry,
+              locale,
+              isTranslatable: isFieldTranslatable(f, locale, defaultLocale),
+              isDuplicate: isFieldDuplicate(f, locale, defaultLocale),
+              path: [...path, field.get('name'), listIndex],
+            }),
+          );
+        });
+        return listItem;
+      });
+
+    return fromJS(data);
+  }
   if (isTranslatable) {
     const dataPath = getLocaleDataPath(locale);
-    return entry.getIn([...dataPath, field.get('name')]);
+    return entry.getIn([...dataPath, ...path, field.get('name')]);
   }
 
-  return entry.getIn(['data', field.get('name')]);
+  return entry.getIn(['data', ...path, field.get('name')]);
 }
 
 export default class ControlPane extends React.Component {
@@ -220,6 +252,8 @@ export default class ControlPane extends React.Component {
                   entry,
                   locale,
                   isTranslatable,
+                  isDuplicate,
+                  defaultLocale,
                 })}
                 fieldsMetaData={fieldsMetaData}
                 fieldsErrors={fieldsErrors}

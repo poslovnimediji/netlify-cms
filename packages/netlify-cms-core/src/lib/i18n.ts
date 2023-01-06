@@ -1,5 +1,6 @@
-import { Map, List } from 'immutable';
+import { Map, List, fromJS } from 'immutable';
 import { set, groupBy, escapeRegExp } from 'lodash';
+import uuid from 'uuid';
 
 import { selectEntrySlug } from '../reducers/collections';
 
@@ -369,7 +370,7 @@ export function duplicateI18nFields(
   fieldPath: string[] = [field.get('name')],
 ) {
   const value = entryDraft.getIn(['entry', 'data', ...fieldPath]);
-  if (field.get(I18N) === I18N_FIELD.DUPLICATE) {
+  if (field.get(I18N) === I18N_FIELD.DUPLICATE && field.get('widget') != 'list') {
     locales
       .filter(l => l !== defaultLocale)
       .forEach(l => {
@@ -378,6 +379,45 @@ export function duplicateI18nFields(
           value,
         );
       });
+  } else if (
+    field.get(I18N) === I18N_FIELD.DUPLICATE &&
+    field.get('widget') == 'list' &&
+    field.has('fields')
+  ) {
+    (value as List<Map<string, string>>).forEach((valueList, valueIndex) => {
+      let listItemId = valueList?.get('list_item_id');
+      if (listItemId == undefined) {
+        listItemId = uuid();
+        entryDraft = entryDraft.setIn(
+          ['entry', 'data', ...fieldPath, `${valueIndex}`, 'list_item_id'],
+          listItemId,
+        );
+      }
+      locales
+        .filter(l => l !== defaultLocale)
+        .forEach(l => {
+          entryDraft = entryDraft.setIn(
+            [
+              'entry',
+              ...getDataPath(l, defaultLocale),
+              ...fieldPath,
+              `${valueIndex}`,
+              'list_item_id',
+            ],
+            listItemId,
+          );
+        });
+
+      field.get('fields')?.forEach((listField?: EntryField) => {
+        if (listField) {
+          entryDraft = duplicateI18nFields(entryDraft, listField, locales, defaultLocale, [
+            ...fieldPath,
+            `${valueIndex}`,
+            listField.get('name'),
+          ]);
+        }
+      });
+    });
   }
 
   if (field.has('field') && !List.isList(value)) {
@@ -399,6 +439,66 @@ export function duplicateI18nFields(
   }
 
   return entryDraft;
+}
+
+export function duplicateI18nListOrder(
+  entryDraft: EntryDraft,
+  field: EntryField,
+  locales: string[],
+  defaultLocale: string,
+  newValue: Map<string, Map<string, string>>,
+  fieldPath: string[] = [field.get('name')],
+) {
+  if (
+    field.get(I18N) === I18N_FIELD.DUPLICATE &&
+    field.get('widget') == 'list' &&
+    field.has('fields')
+  ) {
+    const oldIds = (
+      entryDraft.getIn(['entry', 'data', ...fieldPath]) as Map<string, Map<string, string>>
+    )
+      .toArray()
+      .map(s => s.get('list_item_id'));
+    const newIds = newValue.toArray().map(s => s.get('list_item_id'));
+
+    if (oldIds.toString() != newIds.toString()) {
+      locales
+        .filter(l => l !== defaultLocale)
+        .forEach(l => {
+          entryDraft = entryDraft.setIn(
+            ['entry', ...getDataPath(l, defaultLocale), ...fieldPath],
+            getNewObjectListValue(
+              oldIds,
+              newIds,
+              entryDraft.getIn(['entry', ...getDataPath(l, defaultLocale), ...fieldPath]) as List<
+                Map<string, string>
+              >,
+            ),
+          );
+        });
+    }
+  }
+  return entryDraft;
+}
+
+function getNewObjectListValue(
+  oldIds: string[],
+  newIds: string[],
+  values: List<Map<string, string>>,
+) {
+  if (oldIds.length > newIds.length) {
+    return values.remove(oldIds.findIndex(id => !newIds.includes(id)));
+  }
+  return fromJS(sortObjectList(newIds, values.toArray()));
+}
+
+function sortObjectList(source: string[], target: Map<string, string>[]) {
+  const sortedArray = target.sort((a, b) => {
+    const aIndex = source.findIndex(item => item === a.get('list_item_id'));
+    const bIndex = source.findIndex(item => item === b.get('list_item_id'));
+    return aIndex - bIndex;
+  });
+  return sortedArray;
 }
 
 export function getPreviewEntry(entry: EntryMap, locale: string, defaultLocale: string) {

@@ -32,7 +32,7 @@ import {
   UNPUBLISHED_ENTRY_PUBLISH_FAILURE,
 } from '../actions/editorialWorkflow';
 import { selectFolderEntryExtension, selectHasMetaPath } from './collections';
-import { getDataPath, duplicateI18nFields } from '../lib/i18n';
+import { getDataPath, duplicateI18nFields, duplicateI18nListOrder } from '../lib/i18n';
 
 const initialState = Map({
   entry: Map(),
@@ -103,6 +103,11 @@ function entryDraftReducer(state = Map(), action) {
         const meta = field.get('meta');
 
         const dataPath = (i18n && getDataPath(i18n.currentLocale, i18n.defaultLocale)) || ['data'];
+
+        state = duplicateI18nListOrder(state, field, i18n.locales, i18n.defaultLocale, value, [
+          field.get('name'),
+        ]);
+
         if (meta) {
           state.setIn(['entry', 'meta', name], value);
         } else {

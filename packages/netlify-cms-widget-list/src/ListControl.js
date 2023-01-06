@@ -129,6 +129,7 @@ export default class ListControl extends React.Component {
     fieldsErrors: ImmutablePropTypes.map.isRequired,
     entry: ImmutablePropTypes.map.isRequired,
     t: PropTypes.func.isRequired,
+    isFieldDuplicate: PropTypes.func,
   };
 
   static defaultProps = {
@@ -458,6 +459,13 @@ export default class ListControl extends React.Component {
     return '';
   }
 
+  objectKey(item, key) {
+    if (this.getValueType() == valueTypes.MULTIPLE) {
+      return item.get('list_item_id');
+    }
+    return key;
+  }
+
   onSortEnd = ({ oldIndex, newIndex }) => {
     const { value, clearFieldErrors } = this.props;
     const { itemsCollapsed, keys } = this.state;
@@ -509,6 +517,7 @@ export default class ListControl extends React.Component {
       resolveWidget,
       parentIds,
       forID,
+      isFieldDuplicate,
       t,
     } = this.props;
 
@@ -524,11 +533,13 @@ export default class ListControl extends React.Component {
         return this.renderErroneousTypedItem(index, item);
       }
     }
+    const isDuplicate = isFieldDuplicate && isFieldDuplicate(field);
+
     return (
       <SortableListItem
         css={[styles.listControlItem, collapsed && styles.listControlItemCollapsed]}
         index={index}
-        key={key}
+        key={this.objectKey(item, key)}
       >
         {isVariableTypesList && (
           <LabelComponent
@@ -543,8 +554,8 @@ export default class ListControl extends React.Component {
         <StyledListItemTopBar
           collapsed={collapsed}
           onCollapseToggle={partial(this.handleItemCollapseToggle, index)}
-          onRemove={partial(this.handleRemove, index)}
-          dragHandleHOC={SortableHandle}
+          onRemove={isDuplicate ? null : partial(this.handleRemove, index)}
+          dragHandleHOC={isDuplicate ? null : SortableHandle}
           data-testid={`styled-list-item-top-bar-${key}`}
         />
         <NestedObjectLabel collapsed={collapsed} error={hasError}>
@@ -561,6 +572,7 @@ export default class ListControl extends React.Component {
               value={item}
               field={field}
               onChangeObject={this.handleChangeFor(index)}
+              isFieldDuplicate={isFieldDuplicate}
               editorControl={editorControl}
               resolveWidget={resolveWidget}
               metadata={metadata}
@@ -605,7 +617,7 @@ export default class ListControl extends React.Component {
   }
 
   renderListControl() {
-    const { value, forID, field, classNameWrapper, t } = this.props;
+    const { value, forID, field, classNameWrapper, t, isFieldDuplicate } = this.props;
     const { itemsCollapsed, listCollapsed } = this.state;
     const items = value || List();
     const label = field.get('label', field.get('name'));
@@ -614,6 +626,7 @@ export default class ListControl extends React.Component {
     const minimizeCollapsedItems = field.get('minimize_collapsed', false);
     const allItemsCollapsed = itemsCollapsed.every(val => val === true);
     const selfCollapsed = allItemsCollapsed && (listCollapsed || !minimizeCollapsedItems);
+    const isDuplicate = isFieldDuplicate && isFieldDuplicate(field);
 
     return (
       <ClassNames>
@@ -636,6 +649,7 @@ export default class ListControl extends React.Component {
               label={labelSingular.toLowerCase()}
               onCollapseToggle={this.handleCollapseAllToggle}
               collapsed={selfCollapsed}
+              isDuplicate={isDuplicate}
               t={t}
             />
             {(!selfCollapsed || !minimizeCollapsedItems) && (

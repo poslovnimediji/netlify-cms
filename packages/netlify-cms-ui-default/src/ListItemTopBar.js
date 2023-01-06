@@ -67,6 +67,7 @@ ListItemTopBar.propTypes = {
   collapsed: PropTypes.bool,
   onCollapseToggle: PropTypes.func,
   onRemove: PropTypes.func,
+  isDuplicate: PropTypes.bool,
 };
 
 const StyledListItemTopBar = styled(ListItemTopBar)`
