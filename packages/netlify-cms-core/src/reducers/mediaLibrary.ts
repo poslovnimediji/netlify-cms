@@ -104,7 +104,8 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
       const controlID = state.get('controlID');
       const value = state.get('value');
 
-      if (!Array.isArray(value)) {
+      const isMultiple = !!state.getIn(['field', 'media_library', 'config' , 'multiple']);
+      if (!isMultiple) {
         return state.withMutations(map => {
           map.setIn(['controlMedia', controlID], mediaPath);
         });
@@ -112,7 +113,7 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
 
       const replaceIndex = state.get('replaceIndex');
       const mediaArray = Array.isArray(mediaPath) ? mediaPath : [mediaPath];
-      const valueArray = value as string[];
+      const valueArray = (Array.isArray(value) ? value : [value]) as string[];
       if (typeof replaceIndex == 'number') {
         valueArray[replaceIndex] = mediaArray[0];
       } else {
