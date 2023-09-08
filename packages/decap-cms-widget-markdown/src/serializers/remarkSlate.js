@@ -5,7 +5,7 @@ import { isEmpty, isArray, flatMap, map, flatten, isEqual } from 'lodash';
  */
 const typeMap = {
   root: 'root',
-  paragraph: 'paragraph',
+  paragraph: 'p',
   blockquote: 'quote',
   code: 'code-block',
   listItem: 'list-item',
@@ -320,8 +320,8 @@ export default function remarkToSlate({ voidCodeBlock } = {}) {
        * on the MDAST node depth.
        */
       case 'heading': {
-        const depthMap = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six' };
-        const slateType = `heading-${depthMap[node.depth]}`;
+        // const depthMap = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six' };
+        const slateType = `h${node.depth}`;
         return createBlock(slateType, nodes);
       }
 

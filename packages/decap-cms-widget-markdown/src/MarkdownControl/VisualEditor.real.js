@@ -2,51 +2,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import ImmutablePropTypes from 'react-immutable-proptypes';
-import { ClassNames, css as coreCss } from '@emotion/react';
+import { ClassNames, css as coreCss } from '@emotion/core';
 import { lengths, fonts, zIndex } from 'decap-cms-ui-default';
 import styled from '@emotion/styled';
 import { createEditor, Transforms, Editor as SlateEditor } from 'slate';
-// import { Editable, ReactEditor, Slate, withReact } from 'slate-react';
+import { Editable, ReactEditor, Slate, withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
 import { fromJS } from 'immutable';
 import { isEqual } from 'lodash';
-import {
-  ELEMENT_CODE_BLOCK,
-  ELEMENT_H1,
-  ELEMENT_H2,
-  ELEMENT_H3,
-  ELEMENT_H4,
-  ELEMENT_H5,
-  ELEMENT_H6,
-  ELEMENT_PARAGRAPH,
-  KEYS_HEADING,
-  MARK_BOLD,
-  MARK_CODE,
-  MARK_ITALIC,
-  MARK_STRIKETHROUGH,
-  Plate,
-  PlateProvider,
-  createBasicMarksPlugin,
-  createBlockquotePlugin,
-  createBoldPlugin,
-  createCodePlugin,
-  createExitBreakPlugin,
-  createHeadingPlugin,
-  createItalicPlugin,
-  createParagraphPlugin,
-  createPlugins,
-  createResetNodePlugin,
-  createSoftBreakPlugin,
-  createStrikethroughPlugin,
-  createUnderlinePlugin,
-  exitBreak,
-  isCodeBlockEmpty,
-  isElementEmpty,
-  unwrapCodeBlock,
-} from '@udecode/plate';
 
 import { editorStyleVars, EditorControlBar } from '../styles';
-import Toolbar from './components/toolbar/Toolbar';
+import Toolbar from './Toolbar';
 import { Element, Leaf } from './renderers';
 import withLists from './plugins/lists/withLists';
 import withBlocks from './plugins/blocks/withBlocks';
@@ -60,12 +26,6 @@ import { markdownToSlate, slateToMarkdown } from '../serializers';
 import withShortcodes from './plugins/shortcodes/withShortcodes';
 import insertShortcode from './plugins/shortcodes/insertShortcode';
 import defaultEmptyBlock from './plugins/blocks/defaultEmptyBlock';
-import HeadingElement from './components/elements/HeadingElement';
-import ParagraphElement from './components/elements/ParagraphElement';
-import BoldLeaf from './components/leaves/BoldLeaf';
-import ItalicLeaf from './components/leaves/ItalicsLeaf';
-import CodeLeaf from './components/leaves/CodeLeaf';
-import StrikeThroughLeaf from './components/leaves/StrikeThroughLeaf';
 
 function visualEditorStyles({ minimal }) {
   return `
@@ -135,11 +95,11 @@ function Editor(props) {
     onChange,
   } = props;
 
-  // const editor = useMemo(
-  //   () =>
-  //     withReact(withHistory(withShortcodes(withBlocks(withLists(withInlines(createEditor())))))),
-  //   [],
-  // );
+  const editor = useMemo(
+    () =>
+      withReact(withHistory(withShortcodes(withBlocks(withLists(withInlines(createEditor())))))),
+    [],
+  );
 
   const emptyValue = [defaultEmptyBlock()];
   let editorComponents = getEditorComponents();
@@ -152,53 +112,46 @@ function Editor(props) {
 
   mergeMediaConfig(editorComponents, field);
 
-  // const [editorValue, setEditorValue] = useState(
-  //   props.value
-  //     ? markdownToSlate(props.value, {
-  //         voidCodeBlock: !!codeBlockComponent,
-  //         remarkPlugins: getRemarkPlugins(),
-  //       })
-  //     : emptyValue,
-  // );
+  const [editorValue, setEditorValue] = useState(
+    props.value
+      ? markdownToSlate(props.value, {
+          voidCodeBlock: !!codeBlockComponent,
+          remarkPlugins: getRemarkPlugins(),
+        })
+      : emptyValue,
+  );
 
-  const initialValue = props.value
-    ? markdownToSlate(props.value, {
-        voidCodeBlock: !!codeBlockComponent,
-        remarkPlugins: getRemarkPlugins(),
-      })
-    : emptyValue;
+  const renderElement = useCallback(
+    props => (
+      <Element {...props} classNameWrapper={className} codeBlockComponent={codeBlockComponent} />
+    ),
+    [],
+  );
+  const renderLeaf = useCallback(props => <Leaf {...props} />, []);
 
-  // const renderElement = useCallback(
-  //   props => (
-  //     <Element {...props} classNameWrapper={className} codeBlockComponent={codeBlockComponent} />
-  //   ),
-  //   [],
-  // );
-  // const renderLeaf = useCallback(props => <Leaf {...props} />, []);
-
-  // useEffect(() => {
-  //   if (props.pendingFocus) {
-  //     ReactEditor.focus(editor);
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (props.pendingFocus) {
+      ReactEditor.focus(editor);
+    }
+  }, []);
 
   function handleMarkClick(format) {
-    // ReactEditor.focus(editor);
-    // toggleMark(editor, format);
+    ReactEditor.focus(editor);
+    toggleMark(editor, format);
   }
 
   function handleBlockClick(format) {
-    // ReactEditor.focus(editor);
-    // if (format.endsWith('-list')) {
-    //   editor.toggleList(format);
-    // } else {
-    //   editor.toggleBlock(format);
-    // }
+    ReactEditor.focus(editor);
+    if (format.endsWith('-list')) {
+      editor.toggleList(format);
+    } else {
+      editor.toggleBlock(format);
+    }
   }
 
   function handleLinkClick() {
-    // toggleLink(editor, t('editor.editorWidgets.markdown.linkPrompt'));
-    // ReactEditor.focus(editor);
+    toggleLink(editor, t('editor.editorWidgets.markdown.linkPrompt'));
+    ReactEditor.focus(editor);
   }
 
   function handleToggleMode() {
@@ -206,110 +159,58 @@ function Editor(props) {
   }
 
   function handleInsertShortcode(pluginConfig) {
-    // insertShortcode(editor, pluginConfig);
+    insertShortcode(editor, pluginConfig);
   }
 
-  // function handleKeyDown(event) {
-  //   for (const handler of editor.keyDownHandlers || []) {
-  //     if (handler(event, editor) === false) {
-  //       break;
-  //     }
-  //   }
-  //   ReactEditor.focus(editor);
-  // }
+  function handleKeyDown(event) {
+    for (const handler of editor.keyDownHandlers || []) {
+      if (handler(event, editor) === false) {
+        break;
+      }
+    }
+    ReactEditor.focus(editor);
+  }
 
-  // function handleClickBelowDocument() {
-  //   ReactEditor.focus(editor);
-  //   Transforms.select(editor, { path: [0, 0], offset: 0 });
-  //   Transforms.select(editor, SlateEditor.end(editor, []));
-  // }
-  // const [toolbarKey, setToolbarKey] = useState(0);
+  function handleClickBelowDocument() {
+    ReactEditor.focus(editor);
+    Transforms.select(editor, { path: [0, 0], offset: 0 });
+    Transforms.select(editor, SlateEditor.end(editor, []));
+  }
+  const [toolbarKey, setToolbarKey] = useState(0);
 
-  // function handleChange(newValue) {
-  //   if (!isEqual(newValue, editorValue)) {
-  //     setEditorValue(() => newValue);
-  //     onChange(
-  //       slateToMarkdown(newValue, {
-  //         voidCodeBlock: !!codeBlockComponent,
-  //         remarkPlugins: getRemarkPlugins(),
-  //       }),
-  //     );
-  //   }
-  //   setToolbarKey(prev => prev + 1);
-  // }
+  function handleChange(newValue) {
+    if (!isEqual(newValue, editorValue)) {
+      setEditorValue(() => newValue);
+      onChange(
+        slateToMarkdown(newValue, {
+          voidCodeBlock: !!codeBlockComponent,
+          remarkPlugins: getRemarkPlugins(),
+        }),
+      );
+    }
+    setToolbarKey(prev => prev + 1);
+  }
 
   function hasMark(format) {
-    // return isMarkActive(editor, format);
+    return isMarkActive(editor, format);
   }
 
   function hasInline(format) {
-    // if (format == 'link') {
-    //   return !!getActiveLink(editor);
-    // }
-    // return false;
+    if (format == 'link') {
+      return !!getActiveLink(editor);
+    }
+    return false;
   }
 
   function hasBlock(format) {
-    // return isCursorInBlockType(editor, format);
+    return isCursorInBlockType(editor, format);
   }
   function hasQuote() {
-    // return isCursorInBlockType(editor, 'quote');
+    return isCursorInBlockType(editor, 'quote');
   }
   function hasListItems(type) {
-    // return isCursorInBlockType(editor, type);
+    return isCursorInBlockType(editor, type);
   }
-
-  function handleChange(data) {
-    console.log('editor value', data);
-  }
-
-  const editableProps = {
-    placeholder: '',
-  };
-
-  const plugins = createPlugins(
-    [
-      createBoldPlugin(),
-      createItalicPlugin(),
-      createStrikethroughPlugin(),
-      createCodePlugin(),
-      createParagraphPlugin(),
-      createHeadingPlugin(),
-      createSoftBreakPlugin(),
-      createExitBreakPlugin({
-        options: {
-          rules: [
-            {
-              hotkey: 'Enter',
-              query: {
-                start: true,
-                end: true,
-                allow: KEYS_HEADING,
-              },
-              relative: true,
-              level: 1,
-            }
-          ]
-
-        },
-      }),
-    ],
-    {
-      components: {
-        [MARK_BOLD]: BoldLeaf,
-        [MARK_ITALIC]: ItalicLeaf,
-        [MARK_CODE]: CodeLeaf,
-        [MARK_STRIKETHROUGH]: StrikeThroughLeaf,
-        [ELEMENT_PARAGRAPH]: ParagraphElement,
-        [ELEMENT_H1]: HeadingElement,
-        [ELEMENT_H2]: HeadingElement,
-        [ELEMENT_H3]: HeadingElement,
-        [ELEMENT_H4]: HeadingElement,
-        [ELEMENT_H5]: HeadingElement,
-        [ELEMENT_H6]: HeadingElement,
-      },
-    },
-  );
 
   return (
     <div
@@ -317,12 +218,12 @@ function Editor(props) {
         position: relative;
       `}
     >
-      <PlateProvider initialValue={initialValue} plugins={plugins} onChange={handleChange}>
+      <Slate editor={editor} value={editorValue} onChange={handleChange}>
         <EditorControlBar>
           {
             <Toolbar
-              // key={toolbarKey}
-              // onMarkClick={handleMarkClick}
+              key={toolbarKey}
+              onMarkClick={handleMarkClick}
               onBlockClick={handleBlockClick}
               onLinkClick={handleLinkClick}
               onToggleMode={handleToggleMode}
@@ -354,12 +255,23 @@ function Editor(props) {
                   `,
                 )}
               >
-                <Plate editableProps={editableProps} />
+                {editorValue.length !== 0 && (
+                  <Editable
+                    className={css`
+                      padding: 16px 20px 0;
+                    `}
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                    onKeyDown={handleKeyDown}
+                    autoFocus={false}
+                  />
+                )}
+                <InsertionPoint onClick={handleClickBelowDocument} />
               </div>
             )}
           </ClassNames>
         }
-      </PlateProvider>
+      </Slate>
     </div>
   );
 }

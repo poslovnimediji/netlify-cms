@@ -1,6 +1,6 @@
 function defaultEmptyBlock(text = '') {
   return {
-    type: 'paragraph',
+    type: 'p',
     children: [{ text }],
   };
 }
